@@ -69,14 +69,14 @@ _Add your screenshots here for a better README presentation._
 Render will give you a public URL to access your app.
 
 ## File Structure
-
+```
 bookkeeper-flask/
 ├── app.py # Flask application
 ├── templates/
 │ └── index.html # HTML page with transaction form + table
 ├── requirements.txt # Python dependencies
 ├── Procfile # Required by Render
-
+```
 
 ## Exported Formats
 
