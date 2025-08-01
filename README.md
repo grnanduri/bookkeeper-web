@@ -88,3 +88,7 @@ bookkeeper-flask/
 - SQLite database is ephemeral when deployed on Render free tier.
 - Export your data regularly.
 - You can upgrade to PostgreSQL or other persistent storage in the future.
+
+## License
+
+MIT License
