@@ -5,6 +5,7 @@ from openpyxl import Workbook
 import os
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
 
 DB_FILE = 'books.db'
 
@@ -18,7 +19,14 @@ def init_db():
             description TEXT,
             category TEXT,
             type TEXT CHECK(type IN ('income','expense')),
-            amount REAL
+            amount REAL,
+            payment_method TEXT,
+            reference_id TEXT,
+            vendor_customer TEXT,
+            invoice_no TEXT,
+            status TEXT,
+            entered_by TEXT,
+            attachment TEXT
         )
     ''')
     conn.commit()
@@ -35,15 +43,26 @@ def index():
 
 @app.route('/add', methods=['POST'])
 def add():
-    date = request.form['date']
-    description = request.form['description']
-    category = request.form['category']
-    ttype = request.form['type']
-    amount = float(request.form['amount'])
+    data = request.form
+    file = request.files.get('attachment')
+    attachment_path = ''
+    if file and file.filename:
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        attachment_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(attachment_path)
+
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute('INSERT INTO transactions (date, description, category, type, amount) VALUES (?, ?, ?, ?, ?)',
-              (date, description, category, ttype, amount))
+    c.execute('''
+        INSERT INTO transactions (
+            date, description, category, type, amount, payment_method, reference_id,
+            vendor_customer, invoice_no, status, entered_by, attachment
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        data['date'], data['description'], data['category'], data['type'], float(data['amount']),
+        data['payment_method'], data['reference_id'], data['vendor_customer'], data['invoice_no'],
+        data['status'], data['entered_by'], attachment_path
+    ))
     conn.commit()
     conn.close()
     return redirect('/')
@@ -54,11 +73,12 @@ def export_csv():
     c = conn.cursor()
     c.execute('SELECT * FROM transactions')
     rows = c.fetchall()
+    headers = [i[0] for i in c.description]
     conn.close()
     filename = "transactions.csv"
     with open(filename, 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(["ID", "Date", "Description", "Category", "Type", "Amount"])
+        writer.writerow(headers)
         writer.writerows(rows)
     return send_file(filename, as_attachment=True)
 
@@ -68,12 +88,14 @@ def export_excel():
     c = conn.cursor()
     c.execute('SELECT * FROM transactions')
     rows = c.fetchall()
+    headers = [i[0] for i in c.description]
     conn.close()
+
     filename = "transactions.xlsx"
     wb = Workbook()
     ws = wb.active
     ws.title = "Transactions"
-    ws.append(["ID", "Date", "Description", "Category", "Type", "Amount"])
+    ws.append(headers)
     for row in rows:
         ws.append(row)
     wb.save(filename)
@@ -81,5 +103,5 @@ def export_excel():
 
 if __name__ == '__main__':
     init_db()
-    port = int(os.environ.get("PORT", 5000))  # Use Render-assigned port or 5000 locally
-    app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
