@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, send_file
 import sqlite3
 import csv
 from openpyxl import Workbook
+import os
 
 app = Flask(__name__)
 
@@ -80,4 +81,5 @@ def export_excel():
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))  # Use Render-assigned port or 5000 locally
+    app.run(host='0.0.0.0', port=port)
